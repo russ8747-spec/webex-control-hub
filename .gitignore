@@ -1,0 +1,20 @@
+# Secrets — never commit these
+.env
+audit.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Mac
+.DS_Store
+
+# Claude Code local settings
+.claude/
+
+# Real data exports — never commit these
+Errors/
+example/
