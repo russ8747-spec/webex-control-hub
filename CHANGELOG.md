@@ -33,6 +33,31 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.1.0] — 2026-04-27
+**Commit:** `pending`
+**Changed by:** Claude
+
+### Added
+- `pages/11_Bulk_Add_Numbers.py` — new Bulk Add Numbers page ported from v3
+  - CSV upload with `phone_number` + `location_name` columns
+  - Auto-normalizes US formats (10-digit, xxx-xxx-xxxx, 1xxxxxxxxxx) to E.164
+  - Validates every row against live Control Hub locations before execution
+  - Previews batches grouped by location before the user commits
+  - Progress bar per location; results table with pass/fail per number
+  - Downloadable results CSV; all actions written to audit log
+  - Number type selector (DID / TOLLFREE / MOBILE) in sidebar
+- `webex/numbers.py` — added `Numbers.add()` method
+  - POSTs to `/telephony/config/locations/{id}/numbers`
+  - Requires `spark-admin:telephony_config_write` scope
+
+### Notes
+- Snapshot tag `v1.0.0-pre-bulk-numbers` created before this change
+- No hardcoded org IDs, location names, or phone numbers anywhere in the new code
+- Template CSV ships with placeholder values only (`Your Location Name Here`)
+- To roll back: `git checkout v1.0.0-pre-bulk-numbers -- pages/11_Bulk_Add_Numbers.py webex/numbers.py`
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [ ] GitHub repo made public

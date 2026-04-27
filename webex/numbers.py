@@ -1,13 +1,16 @@
 """
 webex/numbers.py - Webex Calling Numbers API
 
-Provides phone number inventory and usage lookup.
+Provides phone number inventory, usage lookup, and bulk provisioning.
 
 Endpoints:
-  GET /v1/telephony/config/numbers                    - list numbers in org/location
-  GET /v1/telephony/config/locations/{id}/numbers     - list numbers in a location
+  GET  /v1/telephony/config/numbers                    - list numbers in org/location
+  GET  /v1/telephony/config/locations/{id}/numbers     - list numbers in a location
+  POST /v1/telephony/config/locations/{id}/numbers     - add numbers to a location
 
-Required scope: spark-admin:telephony_config_read
+Required scopes:
+  spark-admin:telephony_config_read   (list/lookup)
+  spark-admin:telephony_config_write  (add numbers)
 """
 
 from __future__ import annotations
@@ -124,6 +127,31 @@ class Numbers:
             "unassigned":    sum(1 for n in numbers if not n.get("owner")),
             "by_owner_type": by_type,
         }
+
+    def add(
+        self,
+        location_id:   str,
+        phone_numbers: list[str],
+        number_type:   str = "DID",
+    ) -> None:
+        """
+        Add phone numbers to a location.
+
+        Args:
+            location_id:   Target location ID.
+            phone_numbers: List of numbers in E.164 format (e.g. '+17705551234').
+            number_type:   'DID', 'TOLLFREE', or 'MOBILE'.
+
+        Raises:
+            WebexAPIError on failure.
+        """
+        client.post(
+            f"/telephony/config/locations/{location_id}/numbers",
+            body={
+                "phoneNumbers": phone_numbers,
+                "numberType":   number_type,
+            },
+        )
 
 
 numbers = Numbers()
