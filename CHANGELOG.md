@@ -59,7 +59,7 @@ This is the initial clean commit. No previous version to roll back to.
 ---
 
 ## [v1.1.1] — 2026-04-27
-**Commit:** `pending`
+**Commit:** `ce7fa58`
 **Changed by:** Claude
 
 ### Fixed
