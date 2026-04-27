@@ -58,6 +58,15 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.1.1] — 2026-04-27
+**Commit:** `pending`
+**Changed by:** Claude
+
+### Fixed
+- `app.py` — added home-page buttons for Bulk Add Numbers and Rename Store, which were missing from the dashboard grid (pages 10 and 11 were never wired up)
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [ ] GitHub repo made public

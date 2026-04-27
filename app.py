@@ -128,3 +128,18 @@ with col9:
     st.markdown("Check AA readiness and unassign HG phone numbers.")
     if st.button("Go to Hunt Groups", use_container_width=True):
         st.switch_page("pages/6_Hunt_Groups.py")
+
+st.divider()
+col10, col11, _ = st.columns(3)
+
+with col10:
+    st.markdown("### 🏪 Rename Store")
+    st.markdown("Bulk rename locations, devices, and other objects.")
+    if st.button("Go to Rename Store", use_container_width=True):
+        st.switch_page("pages/10_Rename_Store.py")
+
+with col11:
+    st.markdown("### 📲 Bulk Add Numbers")
+    st.markdown("Upload a CSV to add DIDs to one or more locations.")
+    if st.button("Go to Bulk Add Numbers", use_container_width=True):
+        st.switch_page("pages/11_Bulk_Add_Numbers.py")
