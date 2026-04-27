@@ -16,7 +16,8 @@ Required scopes:
 from __future__ import annotations
 from webex.client import client
 
-_BASE = "/telephony/config/locations/{location_id}/autoAttendants"
+_BASE     = "/telephony/config/autoAttendants"
+_BASE_LOC = "/telephony/config/locations/{location_id}/autoAttendants"
 
 # ── AA type templates ──────────────────────────────────────────────────────────
 # These match the exact configuration from the Auto Attendant_example.csv.
@@ -82,12 +83,16 @@ def _build_menu(transfer_ext: str, greeting: str = "CUSTOM") -> dict:
 class AutoAttendants:
 
     def list(self, location_id: str, name: str = None) -> list[dict]:
-        """List all auto attendants in a location."""
-        params: dict = {}
+        """List all auto attendants in a location.
+
+        Uses the org-level endpoint with locationId as a query param —
+        the location-path variant returns 404 for some orgs.
+        """
+        params: dict = {"locationId": location_id}
         if name:
             params["name"] = name
         return client.get_all_pages(
-            _BASE.format(location_id=location_id),
+            _BASE,
             params=params,
             items_key="autoAttendants",
         )
@@ -95,7 +100,8 @@ class AutoAttendants:
     def get(self, location_id: str, auto_attendant_id: str) -> dict:
         """Get full details for one auto attendant."""
         return client.get(
-            f"{_BASE.format(location_id=location_id)}/{auto_attendant_id}"
+            f"{_BASE}/{auto_attendant_id}",
+            params={"locationId": location_id},
         )
 
     def create(
@@ -153,7 +159,7 @@ class AutoAttendants:
         if extension_dialing:
             body["extensionDialing"] = extension_dialing
 
-        return client.post(_BASE.format(location_id=location_id), body=body)
+        return client.post(_BASE_LOC.format(location_id=location_id), body=body)
 
     def create_from_template(
         self,
@@ -261,7 +267,7 @@ class AutoAttendants:
         pass, and PUTs the complete body back. This prevents partial PUTs from
         silently wiping menus, alternate numbers, or other unspecified fields.
         """
-        path    = f"{_BASE.format(location_id=location_id)}/{auto_attendant_id}"
+        path    = f"{_BASE_LOC.format(location_id=location_id)}/{auto_attendant_id}"
         current = self.get(location_id, auto_attendant_id)
 
         # Strip read-only / server-generated fields that the PUT rejects
@@ -286,7 +292,7 @@ class AutoAttendants:
 
     def delete(self, location_id: str, auto_attendant_id: str) -> dict:
         """Delete an auto attendant."""
-        path = f"{_BASE.format(location_id=location_id)}/{auto_attendant_id}"
+        path = f"{_BASE_LOC.format(location_id=location_id)}/{auto_attendant_id}"
         return client.delete(path)
 
 

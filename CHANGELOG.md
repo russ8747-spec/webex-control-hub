@@ -80,6 +80,16 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.2.1] — 2026-04-27
+**Commit:** `pending`
+**Changed by:** Claude
+
+### Fixed
+- `webex/auto_attendants.py` — `list()` and `get()` now use the org-level endpoint (`/telephony/config/autoAttendants?locationId=...`) instead of the location-path variant (`/telephony/config/locations/{id}/autoAttendants`). The location-path variant returns `404: No static resource` for some orgs. This matches the same fix already applied to hunt groups.
+- `create()`, `update()`, `delete()` continue to use the location-path as required by the Webex API for write operations.
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
