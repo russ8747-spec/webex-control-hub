@@ -81,7 +81,7 @@ This is the initial clean commit. No previous version to roll back to.
 ---
 
 ## [v1.2.1] — 2026-04-27
-**Commit:** `pending`
+**Commit:** `62cf6ea`
 **Changed by:** Claude
 
 ### Fixed
