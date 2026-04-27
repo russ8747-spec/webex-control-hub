@@ -67,6 +67,19 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.2.0] — 2026-04-27
+**Commit:** `pending`
+**Changed by:** Claude
+
+### Added
+- `pages/11_Bulk_Add_Numbers.py` — Type/Paste tab alongside the existing CSV Upload tab
+  - Text area accepts one number per line in any common US format
+  - Location dropdown populated live from Control Hub locations
+  - Same E.164 normalization, validation, preview, and execute flow as CSV mode
+  - Shared `validate_rows()` and `render_review_and_execute()` helpers eliminate duplication between tabs
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
