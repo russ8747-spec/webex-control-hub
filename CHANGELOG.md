@@ -34,7 +34,7 @@ This is the initial clean commit. No previous version to roll back to.
 ---
 
 ## [v1.1.0] — 2026-04-27
-**Commit:** `pending`
+**Commit:** `2d09085`
 **Changed by:** Claude
 
 ### Added
