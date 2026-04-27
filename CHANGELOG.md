@@ -69,5 +69,5 @@ This is the initial clean commit. No previous version to roll back to.
 
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
-- [ ] GitHub repo made public
-- [ ] Deployed to Streamlit Cloud (`share.streamlit.io`)
+- [x] GitHub repo is public
+- [x] Deployed to Streamlit Cloud — auto-deploys on every push to `main`
