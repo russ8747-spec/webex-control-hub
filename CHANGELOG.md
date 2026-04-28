@@ -90,6 +90,23 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.3.0] — 2026-04-28
+**Commit:** `pending`
+**Changed by:** Claude
+
+### Added
+- `webex/music_on_hold.py` — new API module for `GET/PUT /telephony/config/locations/{id}/musicOnHold`
+- `pages/12_Music_On_Hold.py` — new page showing MOH settings for all locations in one table
+  - Fetches all locations in parallel (up to 20 concurrent calls) via `ThreadPoolExecutor`
+  - Columns: Location, Greeting Type, Audio File, File Scope, Call Hold MOH, Call Park MOH
+  - Filter by location name, file name, or greeting type (Custom / Default)
+  - Summary metrics: total locations, custom files, default, errors
+  - Export to CSV
+  - Errors per location shown in collapsible expander
+- `app.py` — added Music on Hold button to home page grid (row 4, col 3)
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public

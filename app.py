@@ -130,7 +130,7 @@ with col9:
         st.switch_page("pages/6_Hunt_Groups.py")
 
 st.divider()
-col10, col11, _ = st.columns(3)
+col10, col11, col12 = st.columns(3)
 
 with col10:
     st.markdown("### 🏪 Rename Store")
@@ -143,3 +143,9 @@ with col11:
     st.markdown("Upload a CSV to add DIDs to one or more locations.")
     if st.button("Go to Bulk Add Numbers", use_container_width=True):
         st.switch_page("pages/11_Bulk_Add_Numbers.py")
+
+with col12:
+    st.markdown("### 🎵 Music on Hold")
+    st.markdown("View MOH file for every location in one table.")
+    if st.button("Go to Music on Hold", use_container_width=True):
+        st.switch_page("pages/12_Music_On_Hold.py")
