@@ -91,7 +91,7 @@ This is the initial clean commit. No previous version to roll back to.
 ---
 
 ## [v1.3.0] — 2026-04-28
-**Commit:** `pending`
+**Commit:** `5b9f0fa`
 **Changed by:** Claude
 
 ### Added
