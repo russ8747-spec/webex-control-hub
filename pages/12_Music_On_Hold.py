@@ -3,17 +3,21 @@ pages/12_Music_On_Hold.py - Music on Hold viewer across all locations.
 
 Fetches MOH settings for every location in parallel and displays
 them in a single sortable table — no clicking into each location.
+
+Token is read from session state in the main thread before spawning
+worker threads — st.session_state is not accessible from background
+threads, so passing the token explicitly avoids 401 errors.
 """
 
+import requests as _requests
 import streamlit as st
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from utils.ui    import connection_status_badge, api_error, section
-from utils.cache import get_locations
+from utils.ui     import connection_status_badge, api_error, section
+from utils.cache  import get_locations
 from utils.export import to_csv_bytes
-from webex.music_on_hold import music_on_hold as moh_api
-from webex.client import WebexAPIError
+from config       import BASE_URL
 
 st.set_page_config(
     page_title="Music on Hold — Control Hub",
@@ -21,7 +25,7 @@ st.set_page_config(
     layout="wide",
 )
 
-MAX_WORKERS = 20  # concurrent API calls
+MAX_WORKERS = 20
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -48,40 +52,73 @@ if not all_locs:
 
 # ── Fetch MOH for all locations in parallel ───────────────────────────────────
 if refresh:
-    st.cache_data.clear()
+    st.session_state.pop("moh_rows", None)
 
-if "moh_rows" not in st.session_state or refresh:
-    rows    = []
-    errors  = []
-    total   = len(all_locs)
-    bar     = st.progress(0, text="Fetching Music on Hold settings…")
-    done    = 0
+if "moh_rows" not in st.session_state:
+
+    # Capture token in the main thread — session_state is not thread-safe
+    token = st.session_state.get("access_token", "")
+    if not token:
+        st.error("No access token found. Please log in again from the Settings page.")
+        st.stop()
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type":  "application/json",
+        "Accept":        "application/json",
+    }
 
     def _fetch(loc: dict) -> dict:
+        url = f"{BASE_URL}/telephony/config/locations/{loc['id']}/musicOnHold"
         try:
-            moh = moh_api.get(loc["id"])
+            resp = _requests.get(url, headers=headers, timeout=15)
+            if resp.status_code == 204:
+                moh = {}
+            else:
+                resp.raise_for_status()
+                moh = resp.json()
             audio = moh.get("audioFile") or {}
             return {
-                "Location":        loc["name"],
-                "Greeting":        moh.get("greeting", "DEFAULT"),
-                "Audio File":      audio.get("name", "—") if moh.get("greeting") == "CUSTOM" else "Default",
-                "File Scope":      audio.get("mediaFileType", "—") if moh.get("greeting") == "CUSTOM" else "—",
-                "Call Hold MOH":   "✅" if moh.get("callHoldEnabled", False) else "❌",
-                "Call Park MOH":   "✅" if moh.get("callParkEnabled", False) else "❌",
-                "_loc_id":         loc["id"],
-                "_error":          "",
+                "Location":      loc["name"],
+                "Greeting":      moh.get("greeting", "DEFAULT"),
+                "Audio File":    audio.get("name", "—") if moh.get("greeting") == "CUSTOM" else "Default",
+                "File Scope":    audio.get("mediaFileType", "—") if moh.get("greeting") == "CUSTOM" else "—",
+                "Call Hold MOH": "✅" if moh.get("callHoldEnabled", False) else "❌",
+                "Call Park MOH": "✅" if moh.get("callParkEnabled", False) else "❌",
+                "_loc_id":       loc["id"],
+                "_error":        "",
             }
-        except WebexAPIError as e:
+        except _requests.HTTPError as e:
+            try:
+                msg = e.response.json().get("message", str(e))
+            except Exception:
+                msg = str(e)
             return {
-                "Location":       loc["name"],
-                "Greeting":       "—",
-                "Audio File":     f"Error: {e.message}",
-                "File Scope":     "—",
-                "Call Hold MOH":  "—",
-                "Call Park MOH":  "—",
-                "_loc_id":        loc["id"],
-                "_error":         str(e),
+                "Location":      loc["name"],
+                "Greeting":      "—",
+                "Audio File":    f"Error: {msg}",
+                "File Scope":    "—",
+                "Call Hold MOH": "—",
+                "Call Park MOH": "—",
+                "_loc_id":       loc["id"],
+                "_error":        msg,
             }
+        except Exception as e:
+            return {
+                "Location":      loc["name"],
+                "Greeting":      "—",
+                "Audio File":    f"Error: {e}",
+                "File Scope":    "—",
+                "Call Hold MOH": "—",
+                "Call Park MOH": "—",
+                "_loc_id":       loc["id"],
+                "_error":        str(e),
+            }
+
+    total = len(all_locs)
+    bar   = st.progress(0, text="Fetching Music on Hold settings…")
+    done  = 0
+    rows  = []
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         futures = {pool.submit(_fetch, loc): loc for loc in all_locs}
@@ -102,7 +139,7 @@ default_count = sum(1 for r in rows if r["Greeting"] == "DEFAULT")
 error_count   = sum(1 for r in rows if r["_error"])
 
 m1, m2, m3, m4 = st.columns(4)
-m1.metric("Total Locations", len(rows))
+m1.metric("Total Locations",  len(rows))
 m2.metric("Using Custom File", custom_count)
 m3.metric("Using Default",    default_count)
 m4.metric("Errors",           error_count)
