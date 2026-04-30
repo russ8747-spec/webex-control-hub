@@ -156,6 +156,15 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.4.2] — 2026-04-30
+**Commit:** `9b0e53c`
+**Changed by:** Claude
+
+### Fixed
+- `pages/4_Auto_Attendants.py` — `audioFile.name` in the AA create payload was being set to the announcement's display `name` (e.g. `"Napa AA v2"`) instead of the actual WAV filename in the `fileName` field (e.g. `"Napa Auto Attendant Generic v2.wav"`). Webex API error 6515 is triggered when the name doesn't resolve to a real media file. Fixed by building a `name → fileName` lookup map (`_ann_file_map`) and using `fileName` in the API payload. The UI review step still shows the friendly display name via a separate `audio_file_label` field.
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
