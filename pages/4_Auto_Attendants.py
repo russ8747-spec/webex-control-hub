@@ -255,13 +255,17 @@ with tab_create:
         )
     with s1c3:
         try:
-            _ann_list   = get_announcements()
-            _ann_names  = sorted(a["name"] for a in _ann_list)
-            _ann_id_map = {a["name"]: a.get("id", "") for a in _ann_list}
+            _ann_list     = get_announcements()
+            _ann_names    = sorted(a["name"] for a in _ann_list)
+            # name → announcement id
+            _ann_id_map   = {a["name"]: a.get("id", "") for a in _ann_list}
+            # name → actual WAV filename (fileName field, not the display name)
+            _ann_file_map = {a["name"]: a.get("fileName", a["name"]) for a in _ann_list}
         except Exception:
-            _ann_list   = []
-            _ann_names  = []
-            _ann_id_map = {}
+            _ann_list     = []
+            _ann_names    = []
+            _ann_id_map   = {}
+            _ann_file_map = {}
 
         greeting_options = ["Default (Webex built-in)"] + _ann_names
         greeting_choice  = st.selectbox(
@@ -273,10 +277,6 @@ with tab_create:
                 "'Default (Webex built-in)' to use the Webex system greeting."
             ),
         )
-
-    if _ann_list:
-        with st.expander("🔍 Debug: raw announcement fields (temporary)", expanded=False):
-            st.json(_ann_list[:3])
 
     types_to_create = (
         ["Retail", "Priority"] if aa_type_choice == "Both" else [aa_type_choice]
@@ -302,22 +302,24 @@ with tab_create:
 
                 for aa_type in types_to_create:
                     tmpl = AA_TEMPLATES[aa_type]
-                    _is_default  = greeting_choice == "Default (Webex built-in)"
-                    _audio_file  = None if _is_default else greeting_choice
+                    _is_default    = greeting_choice == "Default (Webex built-in)"
+                    # API needs the actual WAV filename, not the display name
+                    _audio_file    = None if _is_default else _ann_file_map.get(greeting_choice, greeting_choice)
                     _audio_file_id = None if _is_default else _ann_id_map.get(greeting_choice, "")
                     row  = {
-                        "loc_id":        loc_id,
-                        "loc_name":      loc_name,
-                        "aa_type":       aa_type,
-                        "aa_name":       f"{loc_name} {tmpl['suffix']}",
-                        "extension":     tmpl["extension"],
-                        "transfer_to":   tmpl["transfer_ext"],
-                        "timezone":      timezone,
-                        "audio_file":    _audio_file,
-                        "audio_file_id": _audio_file_id,
-                        "schedule_ok":   False,
-                        "hg_name":       "",
-                        "hg_phone":      "",
+                        "loc_id":          loc_id,
+                        "loc_name":        loc_name,
+                        "aa_type":         aa_type,
+                        "aa_name":         f"{loc_name} {tmpl['suffix']}",
+                        "extension":       tmpl["extension"],
+                        "transfer_to":     tmpl["transfer_ext"],
+                        "timezone":        timezone,
+                        "audio_file":      _audio_file,       # actual WAV filename for API
+                        "audio_file_id":   _audio_file_id,
+                        "audio_file_label": greeting_choice,  # display name for UI
+                        "schedule_ok":     False,
+                        "hg_name":         "",
+                        "hg_phone":        "",
                     }
 
                     try:
@@ -369,7 +371,7 @@ with tab_create:
 
         for row in rows:
             greeting_label = (
-                f"CUSTOM — {row['audio_file']}"
+                f"CUSTOM — {row.get('audio_file_label') or row['audio_file']}"
                 if row.get("audio_file")
                 else "Default (Webex built-in)"
             )
