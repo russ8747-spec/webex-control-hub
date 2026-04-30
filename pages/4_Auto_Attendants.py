@@ -118,6 +118,13 @@ with tab_view:
                     st.markdown("**ID:**")
                     st.code(aa_id, language=None)
 
+                    with st.expander("🔍 Full raw JSON (includes menu/audioFile structure)", expanded=False):
+                        try:
+                            full_aa = auto_attendants.get(view_loc["id"], aa_id)
+                            st.json(full_aa)
+                        except Exception as e:
+                            st.error(f"Could not fetch full details: {e}")
+
                     # Show alternate numbers if any
                     alts = aa.get("alternateNumbers", [])
                     if alts:
