@@ -2,9 +2,9 @@
 webex/auto_attendants.py - Webex Calling Auto Attendant API
 
 Endpoints used:
-  GET    /v1/telephony/config/locations/{locationId}/autoAttendants
+  GET    /v1/telephony/config/autoAttendants               - list (org-level, locationId param)
+  GET    /v1/telephony/config/autoAttendants/{id}          - get details
   POST   /v1/telephony/config/locations/{locationId}/autoAttendants
-  GET    /v1/telephony/config/locations/{locationId}/autoAttendants/{id}
   PUT    /v1/telephony/config/locations/{locationId}/autoAttendants/{id}
   DELETE /v1/telephony/config/locations/{locationId}/autoAttendants/{id}
 
@@ -20,46 +20,40 @@ _BASE     = "/telephony/config/autoAttendants"
 _BASE_LOC = "/telephony/config/locations/{location_id}/autoAttendants"
 
 # ── AA type templates ──────────────────────────────────────────────────────────
-# These match the exact configuration from the Auto Attendant_example.csv.
-# Key 0 transfers to the corresponding hunt group extension.
 AA_TEMPLATES = {
     "Retail": {
-        "suffix":          "Retail AA",   # appended to location name
+        "suffix":          "Retail AA",
         "extension":       "5004",
-        "transfer_ext":    "4000",         # hunt group extension — key 1 transfers here
+        "transfer_ext":    "4000",
         "language_code":   "en_us",
     },
     "Priority": {
-        "suffix":          "Priority",
+        "suffix":          "Priority AA",
         "extension":       "5005",
-        "transfer_ext":    "4001",         # hunt group extension — key 1 transfers here
+        "transfer_ext":    "4001",
         "language_code":   "en_us",
     },
 }
 
-# Audio greeting used for all AAs (must exist in org media library)
-GREETING_FILE = "Napa Auto Attendant Generic v2.wav"
 BUSINESS_SCHEDULE_NAME = "Open"
 
-# audioFile object to include when greeting = "CUSTOM"
-_GREETING_AUDIO = {
-    "name":          GREETING_FILE,
-    "mediaType":     "WAV",
-    "mediaFileType": "ORGANIZATION",
-}
 
-
-def _build_menu(transfer_ext: str, greeting: str = "CUSTOM") -> dict:
+def _build_menu(transfer_ext: str, audio_file_name: str = None) -> dict:
     """
     Build the business-hours or after-hours menu payload.
 
-    Matches the CSV template:
-      - Greeting: CUSTOM (Napa Auto Attendant Generic v2.wav, org-level)
-      - No-input: TWO_TIMES retry, 5 sec, PLAY_MESSAGE_AND_DISCONNECT
-      - Key 0: TRANSFER_WITHOUT_PROMPT to the hunt group extension
+    Args:
+        transfer_ext:    Extension for key 1 TRANSFER_WITHOUT_PROMPT.
+        audio_file_name: Name of an org-level WAV file. If provided, greeting
+                         is set to CUSTOM with that file. If None, DEFAULT greeting.
 
-    Field names match the Webex Calling API spec (confirmed against CSV export).
+    Config matches the target CSV template (ATL050/ATL080):
+      - Greeting: CUSTOM (selected org-level WAV) or DEFAULT
+      - No-input: TWO_TIMES retry, 5 sec, PLAY_MESSAGE_AND_DISCONNECT
+      - Key 1: TRANSFER_WITHOUT_PROMPT to hunt group extension
+      - extensionEnabled: FALSE
     """
+    greeting = "CUSTOM" if audio_file_name else "DEFAULT"
     menu: dict = {
         "greeting":                  greeting,
         "extensionEnabled":          False,
@@ -75,8 +69,12 @@ def _build_menu(transfer_ext: str, greeting: str = "CUSTOM") -> dict:
             }
         ],
     }
-    if greeting == "CUSTOM":
-        menu["audioFile"] = _GREETING_AUDIO
+    if audio_file_name:
+        menu["audioFile"] = {
+            "name":          audio_file_name,
+            "mediaType":     "WAV",
+            "mediaFileType": "ORGANIZATION",
+        }
     return menu
 
 
@@ -121,21 +119,7 @@ class AutoAttendants:
         """
         Create a new auto attendant.
 
-        Args:
-            location_id:         The location's unique ID.
-            name:                Display name.
-            phone_number:        E.164 phone number, e.g. "+13125551234".
-            extension:           Extension string, e.g. "5004".
-            language_code:       Language code, e.g. "en_us".
-            time_zone:           IANA timezone, e.g. "America/Chicago".
-            business_schedule:   Name of the business hours schedule, e.g. "Open".
-            business_hours_menu: Menu dict (use _build_menu() helper).
-            after_hours_menu:    Menu dict for after hours.
-            alternate_numbers:   List of dicts: [{"phoneNumber": "+1...", "ringPattern": "NORMAL"}]
-            extension_dialing:   "GROUP" or "ENTERPRISE" — dialing scope (top-level AA field).
-
-        Returns:
-            Dict with the new AA's 'id'.
+        extension_dialing: "GROUP" (Location scope) or "ENTERPRISE" (Org scope).
         """
         if not phone_number and not extension:
             raise ValueError("At least one of phone_number or extension is required.")
@@ -169,7 +153,7 @@ class AutoAttendants:
         time_zone:         str,
         phone_number:      str  = None,
         schedule_ok:       bool = True,
-        greeting:          str  = "CUSTOM",
+        audio_file_name:   str  = None,
         alternate_numbers: list = None,
         dry_run:           bool = False,
     ) -> dict:
@@ -177,23 +161,9 @@ class AutoAttendants:
         Create a Retail or Priority AA using the standard template.
 
         Args:
-            location_id:       Location unique ID.
-            location_name:     Human-readable location name (e.g. "ATL123 7001123").
-            aa_type:           "Retail" or "Priority".
-            time_zone:         IANA timezone from the location.
-            phone_number:      E.164 phone number to assign (optional — omitted when None).
-            schedule_ok:       Pass False if the "Open" schedule doesn't exist at this
-                               location — the businessHours field will be omitted so
-                               the API doesn't reject the whole request.
-            alternate_numbers: List of alternate number dicts (optional).
-            dry_run:           If True, return the payload without calling the API.
-
-        Returns:
-            On dry_run=True:  the request body dict that would be sent.
-            On dry_run=False: the API response dict (contains 'id').
-
-        Raises:
-            ValueError: if aa_type is not "Retail" or "Priority".
+            audio_file_name: Name of an org-level WAV file to use as the greeting
+                             (e.g. "Napa Auto Attendant Generic v2.wav").
+                             Pass None to use the Webex DEFAULT greeting.
         """
         if aa_type not in AA_TEMPLATES:
             raise ValueError(f"aa_type must be one of {list(AA_TEMPLATES.keys())}")
@@ -201,25 +171,21 @@ class AutoAttendants:
         tmpl         = AA_TEMPLATES[aa_type]
         aa_name      = f"{location_name} {tmpl['suffix']}"
         transfer_ext = tmpl["transfer_ext"]
-        menu         = _build_menu(transfer_ext, greeting=greeting)
+        menu         = _build_menu(transfer_ext, audio_file_name=audio_file_name)
 
         body: dict = {
             "name":              aa_name,
             "extension":         tmpl["extension"],
             "languageCode":      tmpl["language_code"],
             "timeZone":          time_zone,
-            "extensionDialing":  "ENTERPRISE",
+            "extensionDialing":  "GROUP",
             "businessHoursMenu": menu,
             "afterHoursMenu":    menu,
         }
 
-        # Only include phoneNumber when one was provided
         if phone_number:
             body["phoneNumber"] = phone_number
 
-        # Only attach the schedule if it's confirmed to exist at this location.
-        # Sending a non-existent schedule name causes a 400 from the API.
-        # The correct POST body field name is "businessSchedule" (plain string).
         if schedule_ok:
             body["businessSchedule"] = BUSINESS_SCHEDULE_NAME
 
@@ -243,12 +209,12 @@ class AutoAttendants:
             business_hours_menu=menu,
             after_hours_menu=menu,
             alternate_numbers=alternate_numbers,
-            extension_dialing="ENTERPRISE",
+            extension_dialing="GROUP",
         )
 
-        # The POST may silently ignore noInputGracePeriodSeconds / noInputRepeatTimes
-        # on some org configurations, defaulting to 10 sec / No Repeat. A follow-up
-        # PUT (via update) forces those values through reliably.
+        # POST may silently ignore extensionDialing, noInputGracePeriodSeconds, and
+        # noInputRepeatTimes on some org configurations, defaulting to ENTERPRISE/10/0.
+        # A follow-up PUT forces all three through reliably.
         new_id = result.get("id", "")
         if new_id:
             try:
@@ -257,9 +223,10 @@ class AutoAttendants:
                     auto_attendant_id=new_id,
                     business_hours_menu=menu,
                     after_hours_menu=menu,
+                    extension_dialing="GROUP",
                 )
             except Exception:
-                pass  # AA was created; timing update is best-effort
+                pass  # AA was created; settings update is best-effort
 
         return result
 
@@ -276,25 +243,20 @@ class AutoAttendants:
         business_hours_menu: dict = None,
         after_hours_menu:    dict = None,
         alternate_numbers:   list = None,
+        extension_dialing:   str  = None,
     ) -> dict:
         """
         Update an existing auto attendant.
 
         GETs the current full config first, then merges only the fields you
-        pass, and PUTs the complete body back. This prevents partial PUTs from
-        silently wiping menus, alternate numbers, or other unspecified fields.
+        pass, and PUTs the complete body back.
         """
         path    = f"{_BASE_LOC.format(location_id=location_id)}/{auto_attendant_id}"
         current = self.get(location_id, auto_attendant_id)
 
-        # Strip read-only / server-generated fields that the PUT rejects
         for field in ("id", "locationId", "locationName"):
             current.pop(field, None)
 
-        # The GET response returns "businessSchedule"; PUT also uses "businessSchedule".
-        # No renaming needed — pass it through unchanged.
-
-        # Merge only the provided changes
         if name is not None:               current["name"]               = name
         if phone_number is not None:       current["phoneNumber"]        = phone_number
         if extension is not None:          current["extension"]          = extension
@@ -304,6 +266,7 @@ class AutoAttendants:
         if business_hours_menu is not None: current["businessHoursMenu"] = business_hours_menu
         if after_hours_menu is not None:   current["afterHoursMenu"]     = after_hours_menu
         if alternate_numbers is not None:  current["alternateNumbers"]   = alternate_numbers
+        if extension_dialing is not None:  current["extensionDialing"]   = extension_dialing
 
         return client.put(path, body=current)
 

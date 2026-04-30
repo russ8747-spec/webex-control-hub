@@ -120,6 +120,31 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.4.0] — 2026-04-30
+**Commit:** `pending`
+**Changed by:** Claude
+
+### Fixed
+- `webex/auto_attendants.py` — corrected `extensionDialing` back to `"GROUP"` (= Location).
+  CSV analysis of ATL028 (bad) vs ATL050/ATL080 (target) confirmed GROUP=Location, ENTERPRISE=Organization.
+  v1.3.1 incorrectly changed this to ENTERPRISE. Now also forces `extensionDialing="GROUP"` through the
+  follow-up PUT so POST-level defaults can't override it.
+- `update()` — added `extension_dialing` parameter so it can be set via PUT as well as POST.
+
+### Changed
+- `_build_menu()` — signature changed from `greeting: str` to `audio_file_name: str = None`.
+  Pass a WAV filename for CUSTOM, or None for DEFAULT. Removes the hardcoded `GREETING_FILE` constant.
+- `create_from_template()` — `greeting` parameter replaced with `audio_file_name: str = None`.
+
+### Added
+- `webex/announcements.py` — new module for `GET /telephony/config/announcements` (org-level WAV library)
+- `utils/cache.py` — `get_announcements()` cached wrapper (5 min TTL)
+- `pages/4_Auto_Attendants.py` — greeting selector now shows a live dropdown of existing org audio files
+  instead of hardcoded DEFAULT/CUSTOM options. Selecting a file uses it as CUSTOM greeting;
+  selecting "Default (Webex built-in)" uses DEFAULT.
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public

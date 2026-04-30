@@ -19,7 +19,8 @@ import pandas as pd
 
 from utils.ui     import connection_status_badge, empty_state, api_error, section
 from utils.cache  import (get_locations, get_hunt_groups,
-                          get_schedules, get_auto_attendants, clear_all_caches)
+                          get_schedules, get_auto_attendants,
+                          get_announcements, clear_all_caches)
 from utils.export import to_csv_bytes
 from utils.audit  import log as audit_log
 from webex.auto_attendants import auto_attendants, AA_TEMPLATES, BUSINESS_SCHEDULE_NAME
@@ -253,13 +254,20 @@ with tab_create:
             help="Retail = extension 5004, key 1 → 4000\nPriority = extension 5005, key 1 → 4001",
         )
     with s1c3:
-        greeting_choice = st.selectbox(
+        try:
+            _ann_list   = get_announcements()
+            _ann_names  = sorted(a["name"] for a in _ann_list)
+        except Exception:
+            _ann_names  = []
+
+        greeting_options = ["Default (Webex built-in)"] + _ann_names
+        greeting_choice  = st.selectbox(
             "Greeting",
-            ["CUSTOM", "DEFAULT"],
+            greeting_options,
+            index=0,
             help=(
-                "CUSTOM = Napa Auto Attendant Generic v2.wav (must exist in org media library).\n"
-                "DEFAULT = Webex built-in greeting. Use DEFAULT if CUSTOM fails, "
-                "then set the audio in Control Hub afterward."
+                "Select an existing org-level audio file, or leave as "
+                "'Default (Webex built-in)' to use the Webex system greeting."
             ),
         )
 
@@ -287,6 +295,8 @@ with tab_create:
 
                 for aa_type in types_to_create:
                     tmpl = AA_TEMPLATES[aa_type]
+                    # None = Default; filename string = CUSTOM org-level file
+                    _audio_file = None if greeting_choice == "Default (Webex built-in)" else greeting_choice
                     row  = {
                         "loc_id":      loc_id,
                         "loc_name":    loc_name,
@@ -295,7 +305,7 @@ with tab_create:
                         "extension":   tmpl["extension"],
                         "transfer_to": tmpl["transfer_ext"],
                         "timezone":    timezone,
-                        "greeting":    greeting_choice,
+                        "audio_file":  _audio_file,
                         "schedule_ok": False,
                         "hg_name":     "",
                         "hg_phone":    "",
@@ -350,9 +360,9 @@ with tab_create:
 
         for row in rows:
             greeting_label = (
-                "CUSTOM — Napa Auto Attendant Generic v2.wav"
-                if row.get("greeting") == "CUSTOM"
-                else "DEFAULT (Webex built-in)"
+                f"CUSTOM — {row['audio_file']}"
+                if row.get("audio_file")
+                else "Default (Webex built-in)"
             )
             sched_icon = "✅" if row["schedule_ok"] else "⚠️"
             with st.expander(
@@ -523,7 +533,7 @@ with tab_create:
                             time_zone=row["timezone"],
                             phone_number=None,
                             schedule_ok=True,   # confirmed in Step 3
-                            greeting=row.get("greeting", "DEFAULT"),
+                            audio_file_name=row.get("audio_file"),
                             dry_run=True,
                         )
                         dry_results.append({
@@ -581,7 +591,7 @@ with tab_create:
                             time_zone=row["timezone"],
                             phone_number=None,
                             schedule_ok=True,   # confirmed in Step 3
-                            greeting=row.get("greeting", "DEFAULT"),
+                            audio_file_name=row.get("audio_file"),
                             dry_run=False,
                         )
                         new_id = result.get("id", "")

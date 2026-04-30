@@ -17,6 +17,7 @@ from webex.numbers         import numbers         as _numbers
 from webex.hunt_groups     import hunt_groups     as _hunt_groups
 from webex.schedules       import schedules       as _schedules
 from webex.auto_attendants import auto_attendants as _auto_attendants
+from webex.announcements   import announcements   as _announcements
 from webex.people          import people          as _people
 from webex.virtual_lines   import virtual_lines   as _virtual_lines
 from webex.paging_groups   import paging_groups   as _paging_groups
@@ -60,6 +61,11 @@ def get_auto_attendants(location_id: str) -> list[dict]:
     return _auto_attendants.list(location_id=location_id)
 
 
+@st.cache_data(ttl=300, show_spinner="Loading announcements…")
+def get_announcements() -> list[dict]:
+    return _announcements.list()
+
+
 @st.cache_data(ttl=120, show_spinner="Loading people…")
 def get_people(location_id: str) -> list[dict]:
     return _people.list(location_id=location_id)
@@ -86,3 +92,4 @@ def clear_all_caches():
     get_people.clear()
     get_virtual_lines.clear()
     get_paging_groups.clear()
+    get_announcements.clear()
