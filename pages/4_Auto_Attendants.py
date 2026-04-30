@@ -259,6 +259,7 @@ with tab_create:
             _ann_names  = sorted(a["name"] for a in _ann_list)
             _ann_id_map = {a["name"]: a.get("id", "") for a in _ann_list}
         except Exception:
+            _ann_list   = []
             _ann_names  = []
             _ann_id_map = {}
 
@@ -272,6 +273,10 @@ with tab_create:
                 "'Default (Webex built-in)' to use the Webex system greeting."
             ),
         )
+
+    if _ann_list:
+        with st.expander("🔍 Debug: raw announcement fields (temporary)", expanded=False):
+            st.json(_ann_list[:3])
 
     types_to_create = (
         ["Retail", "Priority"] if aa_type_choice == "Both" else [aa_type_choice]
