@@ -121,7 +121,7 @@ This is the initial clean commit. No previous version to roll back to.
 ---
 
 ## [v1.4.0] — 2026-04-30
-**Commit:** `pending`
+**Commit:** `59b3c4a`
 **Changed by:** Claude
 
 ### Fixed
