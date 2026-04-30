@@ -98,10 +98,14 @@ class AutoAttendants:
         )
 
     def get(self, location_id: str, auto_attendant_id: str) -> dict:
-        """Get full details for one auto attendant."""
+        """Get full details for one auto attendant.
+
+        Uses the location-path endpoint — the org-level /{id} variant
+        returns 404 for some orgs (same issue as list(), but reversed:
+        list needs org-level, get needs location-path).
+        """
         return client.get(
-            f"{_BASE}/{auto_attendant_id}",
-            params={"locationId": location_id},
+            f"{_BASE_LOC.format(location_id=location_id)}/{auto_attendant_id}",
         )
 
     def create(
