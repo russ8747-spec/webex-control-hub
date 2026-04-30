@@ -208,7 +208,7 @@ class AutoAttendants:
             "extension":         tmpl["extension"],
             "languageCode":      tmpl["language_code"],
             "timeZone":          time_zone,
-            "extensionDialing":  "GROUP",
+            "extensionDialing":  "ENTERPRISE",
             "businessHoursMenu": menu,
             "afterHoursMenu":    menu,
         }
@@ -232,7 +232,7 @@ class AutoAttendants:
         if dry_run:
             return body
 
-        return self.create(
+        result = self.create(
             location_id=location_id,
             name=aa_name,
             phone_number=phone_number or None,
@@ -243,8 +243,25 @@ class AutoAttendants:
             business_hours_menu=menu,
             after_hours_menu=menu,
             alternate_numbers=alternate_numbers,
-            extension_dialing="GROUP",
+            extension_dialing="ENTERPRISE",
         )
+
+        # The POST may silently ignore noInputGracePeriodSeconds / noInputRepeatTimes
+        # on some org configurations, defaulting to 10 sec / No Repeat. A follow-up
+        # PUT (via update) forces those values through reliably.
+        new_id = result.get("id", "")
+        if new_id:
+            try:
+                self.update(
+                    location_id=location_id,
+                    auto_attendant_id=new_id,
+                    business_hours_menu=menu,
+                    after_hours_menu=menu,
+                )
+            except Exception:
+                pass  # AA was created; timing update is best-effort
+
+        return result
 
     def update(
         self,

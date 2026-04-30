@@ -107,6 +107,19 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.3.1] — 2026-04-30
+**Commit:** `pending`
+**Changed by:** Claude
+
+### Fixed
+- `webex/auto_attendants.py` — three AA create issues:
+  1. **Dialing Options**: Changed `extensionDialing` from `"GROUP"` to `"ENTERPRISE"` — `"GROUP"` was resolving to "Organization" in Control Hub; `"ENTERPRISE"` gives "Location"
+  2. **No input timer**: `noInputGracePeriodSeconds: 5` was already correct in `_build_menu` but POST was silently ignoring it (defaulting to 10). Fixed by adding a follow-up PUT via `update()` immediately after `create()` to force the value through.
+  3. **Repeat on no input**: Same root cause as #2 — `noInputRepeatTimes: 2` was in the code but not applied by POST. Resolved by same follow-up PUT.
+- The follow-up `update()` is best-effort (failure does not fail the creation — AA is already created).
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
