@@ -38,20 +38,19 @@ AA_TEMPLATES = {
 BUSINESS_SCHEDULE_NAME = "Open"
 
 
-def _build_menu(transfer_ext: str, audio_file_name: str = None) -> dict:
+def _build_menu(
+    transfer_ext: str,
+    audio_file_name: str = None,
+    audio_file_id: str = None,
+) -> dict:
     """
     Build the business-hours or after-hours menu payload.
 
     Args:
         transfer_ext:    Extension for key 1 TRANSFER_WITHOUT_PROMPT.
-        audio_file_name: Name of an org-level WAV file. If provided, greeting
-                         is set to CUSTOM with that file. If None, DEFAULT greeting.
-
-    Config matches the target CSV template (ATL050/ATL080):
-      - Greeting: CUSTOM (selected org-level WAV) or DEFAULT
-      - No-input: TWO_TIMES retry, 5 sec, PLAY_MESSAGE_AND_DISCONNECT
-      - Key 1: TRANSFER_WITHOUT_PROMPT to hunt group extension
-      - extensionEnabled: FALSE
+        audio_file_name: Name of an org-level WAV file (CUSTOM greeting).
+        audio_file_id:   ID of the org-level announcement — required by Webex
+                         API (error 6515 if omitted when greeting=CUSTOM).
     """
     greeting = "CUSTOM" if audio_file_name else "DEFAULT"
     menu: dict = {
@@ -70,11 +69,14 @@ def _build_menu(transfer_ext: str, audio_file_name: str = None) -> dict:
         ],
     }
     if audio_file_name:
-        menu["audioFile"] = {
+        audio_entry: dict = {
             "name":          audio_file_name,
             "mediaType":     "WAV",
             "mediaFileType": "ORGANIZATION",
         }
+        if audio_file_id:
+            audio_entry["id"] = audio_file_id
+        menu["audioFile"] = audio_entry
     return menu
 
 
@@ -154,6 +156,7 @@ class AutoAttendants:
         phone_number:      str  = None,
         schedule_ok:       bool = True,
         audio_file_name:   str  = None,
+        audio_file_id:     str  = None,
         alternate_numbers: list = None,
         dry_run:           bool = False,
     ) -> dict:
@@ -161,9 +164,9 @@ class AutoAttendants:
         Create a Retail or Priority AA using the standard template.
 
         Args:
-            audio_file_name: Name of an org-level WAV file to use as the greeting
-                             (e.g. "Napa Auto Attendant Generic v2.wav").
-                             Pass None to use the Webex DEFAULT greeting.
+            audio_file_name: Name of an org-level WAV file to use as the greeting.
+            audio_file_id:   ID of that announcement — required by Webex API
+                             alongside the name when greeting=CUSTOM.
         """
         if aa_type not in AA_TEMPLATES:
             raise ValueError(f"aa_type must be one of {list(AA_TEMPLATES.keys())}")
@@ -171,7 +174,7 @@ class AutoAttendants:
         tmpl         = AA_TEMPLATES[aa_type]
         aa_name      = f"{location_name} {tmpl['suffix']}"
         transfer_ext = tmpl["transfer_ext"]
-        menu         = _build_menu(transfer_ext, audio_file_name=audio_file_name)
+        menu         = _build_menu(transfer_ext, audio_file_name=audio_file_name, audio_file_id=audio_file_id)
 
         body: dict = {
             "name":              aa_name,

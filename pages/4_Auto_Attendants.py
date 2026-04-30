@@ -257,8 +257,10 @@ with tab_create:
         try:
             _ann_list   = get_announcements()
             _ann_names  = sorted(a["name"] for a in _ann_list)
+            _ann_id_map = {a["name"]: a.get("id", "") for a in _ann_list}
         except Exception:
             _ann_names  = []
+            _ann_id_map = {}
 
         greeting_options = ["Default (Webex built-in)"] + _ann_names
         greeting_choice  = st.selectbox(
@@ -295,20 +297,22 @@ with tab_create:
 
                 for aa_type in types_to_create:
                     tmpl = AA_TEMPLATES[aa_type]
-                    # None = Default; filename string = CUSTOM org-level file
-                    _audio_file = None if greeting_choice == "Default (Webex built-in)" else greeting_choice
+                    _is_default  = greeting_choice == "Default (Webex built-in)"
+                    _audio_file  = None if _is_default else greeting_choice
+                    _audio_file_id = None if _is_default else _ann_id_map.get(greeting_choice, "")
                     row  = {
-                        "loc_id":      loc_id,
-                        "loc_name":    loc_name,
-                        "aa_type":     aa_type,
-                        "aa_name":     f"{loc_name} {tmpl['suffix']}",
-                        "extension":   tmpl["extension"],
-                        "transfer_to": tmpl["transfer_ext"],
-                        "timezone":    timezone,
-                        "audio_file":  _audio_file,
-                        "schedule_ok": False,
-                        "hg_name":     "",
-                        "hg_phone":    "",
+                        "loc_id":        loc_id,
+                        "loc_name":      loc_name,
+                        "aa_type":       aa_type,
+                        "aa_name":       f"{loc_name} {tmpl['suffix']}",
+                        "extension":     tmpl["extension"],
+                        "transfer_to":   tmpl["transfer_ext"],
+                        "timezone":      timezone,
+                        "audio_file":    _audio_file,
+                        "audio_file_id": _audio_file_id,
+                        "schedule_ok":   False,
+                        "hg_name":       "",
+                        "hg_phone":      "",
                     }
 
                     try:
@@ -534,6 +538,7 @@ with tab_create:
                             phone_number=None,
                             schedule_ok=True,   # confirmed in Step 3
                             audio_file_name=row.get("audio_file"),
+                            audio_file_id=row.get("audio_file_id"),
                             dry_run=True,
                         )
                         dry_results.append({
@@ -592,6 +597,7 @@ with tab_create:
                             phone_number=None,
                             schedule_ok=True,   # confirmed in Step 3
                             audio_file_name=row.get("audio_file"),
+                            audio_file_id=row.get("audio_file_id"),
                             dry_run=False,
                         )
                         new_id = result.get("id", "")
