@@ -145,6 +145,17 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.4.1] — 2026-04-30
+**Commit:** `1c06aa8`
+**Changed by:** Claude
+
+### Fixed
+- `webex/auto_attendants.py` — `_build_menu` now accepts `audio_file_id` and includes it in the `audioFile` payload. Webex API returns HTTP 400 error 6515 ("A media file is required for general source when custom message is selected") when only the name is sent without the ID.
+- `create_from_template` — added `audio_file_id: str = None` parameter; passed through to `_build_menu`.
+- `pages/4_Auto_Attendants.py` — builds a `name → id` lookup from the announcements list at selection time; stores `audio_file_id` in each preview row alongside `audio_file`; both `create_from_template` call sites now pass `audio_file_id=row.get("audio_file_id")`.
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
