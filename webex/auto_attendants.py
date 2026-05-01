@@ -218,21 +218,21 @@ class AutoAttendants:
             extension_dialing="GROUP",
         )
 
-        # POST may silently ignore extensionDialing, noInputGracePeriodSeconds, and
-        # noInputRepeatTimes on some org configurations, defaulting to ENTERPRISE/10/0.
-        # A follow-up PUT forces all three through reliably.
+        # POST silently ignores extensionDialing on some orgs (defaults to ENTERPRISE).
+        # Follow-up PUT forces it to GROUP. We only change extensionDialing here —
+        # menus are already correct from the POST, and re-sending them risks a PUT
+        # rejection if the API doesn't accept callTreatment/audioAnnouncementFile
+        # round-tripped from GET back into PUT.
         new_id = result.get("id", "")
         if new_id:
             try:
                 self.update(
                     location_id=location_id,
                     auto_attendant_id=new_id,
-                    business_hours_menu=menu,
-                    after_hours_menu=menu,
                     extension_dialing="GROUP",
                 )
             except Exception:
-                pass  # AA was created; settings update is best-effort
+                pass  # AA created; extensionDialing fix is best-effort
 
         return result
 
@@ -260,19 +260,29 @@ class AutoAttendants:
         path    = f"{_BASE_LOC.format(location_id=location_id)}/{auto_attendant_id}"
         current = self.get(location_id, auto_attendant_id)
 
-        for field in ("id", "locationId", "locationName"):
+        # Strip read-only / GET-only fields
+        for field in ("id", "locationId", "locationName", "esn", "tollFreeNumber",
+                      "firstName", "lastName", "language", "dialByName",
+                      "directLineCallerIdName", "nameDialing"):
             current.pop(field, None)
 
-        if name is not None:               current["name"]               = name
-        if phone_number is not None:       current["phoneNumber"]        = phone_number
-        if extension is not None:          current["extension"]          = extension
-        if language_code is not None:      current["languageCode"]       = language_code
-        if time_zone is not None:          current["timeZone"]           = time_zone
-        if business_schedule is not None:  current["businessSchedule"]   = business_schedule
-        if business_hours_menu is not None: current["businessHoursMenu"] = business_hours_menu
-        if after_hours_menu is not None:   current["afterHoursMenu"]     = after_hours_menu
-        if alternate_numbers is not None:  current["alternateNumbers"]   = alternate_numbers
-        if extension_dialing is not None:  current["extensionDialing"]   = extension_dialing
+        # callTreatment is a GET-only nested field — Webex rejects it in PUT bodies.
+        # Strip it from existing menu blocks before merging (explicitly passed menus
+        # are already built without it so they're fine as-is).
+        for menu_key in ("businessHoursMenu", "afterHoursMenu"):
+            if menu_key in current and isinstance(current[menu_key], dict):
+                current[menu_key].pop("callTreatment", None)
+
+        if name is not None:                current["name"]               = name
+        if phone_number is not None:        current["phoneNumber"]        = phone_number
+        if extension is not None:           current["extension"]          = extension
+        if language_code is not None:       current["languageCode"]       = language_code
+        if time_zone is not None:           current["timeZone"]           = time_zone
+        if business_schedule is not None:   current["businessSchedule"]   = business_schedule
+        if business_hours_menu is not None: current["businessHoursMenu"]  = business_hours_menu
+        if after_hours_menu is not None:    current["afterHoursMenu"]     = after_hours_menu
+        if alternate_numbers is not None:   current["alternateNumbers"]   = alternate_numbers
+        if extension_dialing is not None:   current["extensionDialing"]   = extension_dialing
 
         return client.put(path, body=current)
 
