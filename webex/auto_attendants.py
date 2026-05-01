@@ -46,37 +46,36 @@ def _build_menu(
     """
     Build the business-hours or after-hours menu payload.
 
-    Args:
-        transfer_ext:    Extension for key 1 TRANSFER_WITHOUT_PROMPT.
-        audio_file_name: Name of an org-level WAV file (CUSTOM greeting).
-        audio_file_id:   ID of the org-level announcement — required by Webex
-                         API (error 6515 if omitted when greeting=CUSTOM).
+    Structure confirmed from a live working AA (ATL050) GET response:
+      - audioAnnouncementFile (NOT audioFile) with fileName + id + mediaFileType + level
+      - callTreatment block for no-input config (NOT top-level noInputRepeatTimes etc.)
     """
-    greeting = "CUSTOM" if audio_file_name else "DEFAULT"
     menu: dict = {
-        "greeting":                  greeting,
-        "extensionEnabled":          False,
-        "noInputRepeatTimes":        2,
-        "noInputGracePeriodSeconds": 5,
-        "noInputAction":             "PLAY_MESSAGE_AND_DISCONNECT",
+        "greeting":       "CUSTOM" if audio_file_name else "DEFAULT",
+        "extensionEnabled": False,
         "keyConfigurations": [
             {
-                "key":         "1",
-                "action":      "TRANSFER_WITHOUT_PROMPT",
-                "description": "",
-                "value":       transfer_ext,
+                "key":    "1",
+                "action": "TRANSFER_WITHOUT_PROMPT",
+                "value":  transfer_ext,
             }
         ],
+        "callTreatment": {
+            "retryAttemptForNoInput": "TWO_TIMES",
+            "noInputTimer": 5,
+            "actionToBePerformed": {
+                "action":   "PLAY_MESSAGE_AND_DISCONNECT",
+                "greeting": "DEFAULT",
+            },
+        },
     }
     if audio_file_name:
-        audio_entry: dict = {
-            "name":          audio_file_name,
-            "mediaType":     "WAV",
-            "mediaFileType": "ORGANIZATION",
+        menu["audioAnnouncementFile"] = {
+            "id":            audio_file_id,
+            "fileName":      audio_file_name,
+            "mediaFileType": "WAV",
+            "level":         "ORGANIZATION",
         }
-        if audio_file_id:
-            audio_entry["id"] = audio_file_id
-        menu["audioFile"] = audio_entry
     return menu
 
 
