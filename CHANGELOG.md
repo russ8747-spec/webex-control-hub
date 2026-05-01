@@ -192,6 +192,17 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.4.5] — 2026-05-01
+**Commit:** `7fe7f31`
+**Changed by:** Claude
+
+### Fixed
+- `webex/auto_attendants.py` — `extensionDialing` was stuck at `ENTERPRISE` after create because the follow-up `update()` PUT was failing silently. Root cause: the PUT body included `callTreatment` (round-tripped from GET), which Webex rejects in write operations. Fix:
+  1. `update()` now strips `callTreatment` from GET-sourced menu objects before PUT, along with other GET-only fields (`esn`, `firstName`, `lastName`, `language`, `dialByName`, `directLineCallerIdName`, `nameDialing`).
+  2. Follow-up PUT in `create_from_template` now only passes `extension_dialing="GROUP"` — menus are already correctly set by the POST and don't need re-sending.
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
