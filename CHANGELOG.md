@@ -180,6 +180,18 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.4.4] — 2026-05-01
+**Commit:** `e2f4a68`
+**Changed by:** Claude
+
+### Fixed
+- `webex/auto_attendants.py` — `_build_menu()` completely rewritten based on ground-truth GET response from ATL050 (a known-working AA with custom greeting). Four prior attempts failed because we were guessing the schema. Confirmed differences:
+  - Field is `audioAnnouncementFile` (not `audioFile`)
+  - Inside it: `fileName`, `id`, `mediaFileType: "WAV"`, `level: "ORGANIZATION"` (not `name`, `mediaType`, `mediaFileType: "ORGANIZATION"`)
+  - No-input config belongs in a `callTreatment` sub-object with keys `retryAttemptForNoInput: "TWO_TIMES"`, `noInputTimer: 5`, `actionToBePerformed: {action, greeting}` — not as flat top-level menu fields
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
