@@ -165,6 +165,21 @@ This is the initial clean commit. No previous version to roll back to.
 
 ---
 
+## [v1.4.3] — 2026-05-01
+**Commit:** `9253fba`
+**Changed by:** Claude
+
+### Fixed
+- `webex/auto_attendants.py` — `get()` was using the org-level endpoint (`/telephony/config/autoAttendants/{id}`) which returns 404 for this org. Switched to location-path (`/telephony/config/locations/{id}/autoAttendants/{id}`). This is the inverse of the v1.2.1 fix: list() needs org-level, get() needs location-path.
+
+### Added
+- `pages/4_Auto_Attendants.py` — "Full raw JSON" expander inside AA Details showing the complete GET response including `businessHoursMenu.audioFile` structure. Needed to diagnose error 6515 by comparing payload against a known-working AA.
+
+### Open Issue
+- Error 6515 on AA create with custom greeting still unresolved after 4 attempts (v1.4.0–v1.4.2). Root cause unknown until raw JSON from a working AA (ATL050/ATL080) is inspected.
+
+---
+
 ## Deployment Status
 - [x] Code pushed to GitHub (`russ8747-spec/webex-control-hub`, branch `main`)
 - [x] GitHub repo is public
